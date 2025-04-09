@@ -1,8 +1,27 @@
 # services/llm_service.py
-import openai
+from openai import OpenAI
 import json
-from typing import Dict, Any, List
-from config import config
+from typing import Dict, Any
+from httpx import Timeout,Client
+import os
+from dotenv import load_dotenv
+
+load_dotenv(override=True) 
+
+config = {
+    "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY"),
+    "MODEL_NAME": os.getenv("MODEL_NAME", "gpt-3.5-turbo"),
+    "MAX_TOKENS": int(os.getenv("MAX_TOKENS", 1000)),
+    "TEMPERATURE": float(os.getenv("TEMPERATURE", 0.7)),
+    "DATA_PATH": os.getenv("DATA_PATH", "data/products.json")
+}
+
+if not config["OPENAI_API_KEY"]:
+    raise EnvironmentError("OPENAI_API_KEY is not set. Please check your .env or environment variables.")
+
+#Completely migrated to newer openai version 
+#0.27.0 was 2 years ago and several improvements have been made since then
+
 
 class LLMService:
     """
@@ -13,7 +32,12 @@ class LLMService:
         """
         Initialize the LLM service with configuration
         """
-        openai.api_key = config['OPENAI_API_KEY']
+        timeout_config = Timeout(30.0)
+        http_client = Client(timeout=timeout_config)
+        self.client = OpenAI(
+            api_key=config["OPENAI_API_KEY"],
+            http_client=http_client
+        )
         self.model_name = config['MODEL_NAME']
         self.max_tokens = config['MAX_TOKENS']
         self.temperature = config['TEMPERATURE']
@@ -34,7 +58,7 @@ class LLMService:
         
         # Call the LLM API
         try:
-            response = openai.ChatCompletion.create(
+            response = self.client.chat.completions.create(
                 model=self.model_name,
                 messages=[
                     {"role": "system", "content": "You are an expert eCommerce copywriter who creates compelling product descriptions."},
@@ -72,7 +96,7 @@ class LLMService:
         
         # Call the LLM API
         try:
-            response = openai.ChatCompletion.create(
+            response = self.client.chat.completions.create(
                 model=self.model_name,
                 messages=[
                     {"role": "system", "content": "You are an SEO expert who creates optimized product titles and meta descriptions."},
@@ -105,7 +129,7 @@ class LLMService:
         
         # Call the LLM API
         try:
-            response = openai.ChatCompletion.create(
+            response = self.client.chat.completions.create(
                 model=self.model_name,
                 messages=[
                     {"role": "system", "content": "You are an email marketing specialist who creates compelling product-focused emails."},
@@ -144,7 +168,7 @@ class LLMService:
         
         # Call the LLM API
         try:
-            response = openai.ChatCompletion.create(
+            response = self.client.chat.completions.create(
                 model=self.model_name,
                 messages=[
                     {"role": "system", "content": "You are a social media manager who creates engaging product posts."},
@@ -176,7 +200,7 @@ class LLMService:
         
         # Call the LLM API
         try:
-            response = openai.ChatCompletion.create(
+            response = self.client.chat.completions.create(
                 model=self.model_name,
                 messages=[
                     {"role": "system", "content": "You are a product data specialist who completes missing product information accurately."},
@@ -258,14 +282,15 @@ class LLMService:
         
         try:
             # Call the OpenAI DALL-E API to generate the image
-            response = openai.Image.create(
+            response = self.client.images.generate(
                 prompt=prompt,
                 n=1,
                 size="1024x1024"
             )
             
             # Extract the URL from the response
-            image_url = response['data'][0]['url']
+            image_url = response.data[0].url
+
             
             return {
                 "image_url": image_url,
@@ -379,12 +404,41 @@ class LLMService:
         
         Returns:
         - str: Prompt for the LLM
+        
         """
-        # TODO: Implement your prompt engineering strategy for SEO content
-        # CANDIDATE: IMPLEMENT THIS FUNCTION
-        
-        prompt = "Generate SEO-optimized title and meta description for a product. Add your implementation."
-        
+        prompt = f"""You are an expert SEO copywriter.
+
+        Generate an SEO-optimized product title and a small meta description for the following product:
+
+        PRODUCT INFORMATION:
+        - Name: {product_data.get('name', '')}
+        - Brand: {product_data.get('brand', '')}
+        - Category: {product_data.get('category', '')}
+        - Subcategory: {product_data.get('subcategory', '')}
+        - Basic Description: {product_data.get('basic_description', '')}
+
+        Key Features:
+        {chr(10).join([f"• {feature}" for feature in product_data.get('features', [])])}
+
+        Target Keywords: {', '.join(product_data.get('tags', []))}
+
+        INSTRUCTIONS:
+        1. Create a small SEO-optimized product title:
+        - Highlight a key benefit or feature
+        - Keep the title STRICTLY between  30-70 characters
+
+        2. Create a small meta description:
+        - Start with the main keyword
+        - Include a strong value prop and a clear call-to-action
+        - Use 1-2 secondary keywords naturally
+        - Keep the description STRICTLY between 120-160 characters
+
+        RESPONSE FORMAT:
+        Title: [your SEO title here]
+        Description: [your meta description here]
+
+        Respond only with the fields above in plain text — no extra explanations or formatting."""
+            
         return prompt
     
     def _create_marketing_email_prompt(self, product_data: Dict[str, Any], style: Dict[str, Any]) -> str:
@@ -398,11 +452,42 @@ class LLMService:
         Returns:
         - str: Prompt for the LLM
         """
-        # TODO: Implement your prompt engineering strategy for marketing emails
-        # CANDIDATE: IMPLEMENT THIS FUNCTION
-        
-        prompt = "Generate a marketing email for a product. Add your implementation."
-        
+        prompt = f"""Create a HUMAN like compelling marketing email for the following product:
+
+        PRODUCT: {product_data.get('name', '')}
+        BRAND: {product_data.get('brand', '')}
+        PRICE: ${product_data.get('price', '')}
+        CATEGORY: {product_data.get('category', '')}
+
+        PRODUCT DESCRIPTION:
+        {product_data.get('detailed_description', product_data.get('basic_description', ''))}
+
+        KEY FEATURES:
+        {chr(10).join([f"• {feature}" for feature in product_data.get('features', [])])}
+
+        TARGET AUDIENCE: {style.get('audience', 'general consumers')}
+
+        INSTRUCTIONS:
+        1. Create an attention-grabbing subject line (40-60 characters)
+        - Create urgency or curiosity
+        - Mention a key benefit or the product name
+
+        2. Write an email body (150-200 words) that includes:
+        - Engaging opening paragraph highlighting a key benefit
+        - 2-3 paragraphs highlighting features and their benefits
+        - Clear product imagery description (where image would be placed)
+        - Strong call-to-action
+
+        TONE: {style.get('tone', 'enthusiastic')}
+        LENGTH: {style.get('length', 'medium')}
+
+        RESPONSE FORMAT:
+        Subject Line: [your subject line]
+
+        [Email Body Content]
+
+        Note: Format the email body as it should appear, with paragraph breaks and sections. Do not include placeholders like [Email Body Content]."""
+            
         return prompt
     
     def _create_social_media_prompt(self, product_data: Dict[str, Any], style: Dict[str, Any], platforms: Dict[str, bool]) -> str:
@@ -512,22 +597,89 @@ And so on for each requested platform.
         
         return prompt
     
+
     def _create_missing_fields_prompt(self, product_data: Dict[str, Any]) -> str:
         """
-        Create a prompt for generating missing product fields
-        
-        Parameters:
-        - product_data (dict): Partial product data
-        
-        Returns:
-        - str: Prompt for the LLM
+        Create a prompt for generating missing product fields or enrichment suggestions
         """
-        # TODO: Implement your prompt engineering strategy for generating missing fields
-        # CANDIDATE: IMPLEMENT THIS FUNCTION
+        missing_fields = []
+
+        if not product_data.get('category'):
+            missing_fields.append('category')
+        if not product_data.get('subcategory'):
+            missing_fields.append('subcategory')
+        if not product_data.get('features') or len(product_data.get('features', [])) < 3:
+            missing_fields.append('features')
+        if not product_data.get('materials'):
+            missing_fields.append('materials')
+        if not product_data.get('tags') or len(product_data.get('tags', [])) < 3:
+            missing_fields.append('tags')
+
+        # If nothing is missing, ask for enrichment suggestions
+        if not missing_fields:
+            return f"""The following product appears to have all the required fields filled.
+
+    PRODUCT NAME: {product_data.get('name', '')}
+    BRAND: {product_data.get('brand', '')}
+    PRICE: ${product_data.get('price', '')}
+    DESCRIPTION: {product_data.get('basic_description', '')}
+
+    Please respond with a JSON object that includes a note like this:
+
+    {{
+    "note": "No missing fields detected. All essential product data is present."
+    }}
+
+    Alternatively, feel free to provide an 'enrichment_suggestions' array to improve the product listing:
+
+    {{
+    "enrichment_suggestions": [
+        "Add more vibrant color options.",
+        "Include size variants for different users.",
+        "Mention customer testimonials or reviews."
+    ]
+    }}
+
+    Respond only with the JSON."""
         
-        prompt = "Generate missing product fields. Add your implementation."
+        # Else, proceed with normal generation
+        prompt = f"""Based on the following product information, generate the missing product fields marked as NEEDED:
+
+    PRODUCT NAME: {product_data.get('name', '')}
+    BRAND: {product_data.get('brand', '')}
+    PRICE: ${product_data.get('price', '')}
+    BASIC DESCRIPTION: {product_data.get('basic_description', '')}
+
+    CATEGORY: {"NEEDED" if 'category' in missing_fields else product_data.get('category', '')}
+    SUBCATEGORY: {"NEEDED" if 'subcategory' in missing_fields else product_data.get('subcategory', '')}
+
+    FEATURES: {"NEEDED (at least 4-5 key features)" if 'features' in missing_fields else chr(10).join([f"• {feature}" for feature in product_data.get('features', [])])}
+    MATERIALS: {"NEEDED" if 'materials' in missing_fields else chr(10).join([f"• {material}" for material in product_data.get('materials', [])])}
+    COLORS: {', '.join(product_data.get('colors', []))}
+    TAGS/KEYWORDS: {"NEEDED (at least 5-7 relevant keywords)" if 'tags' in missing_fields else ', '.join(product_data.get('tags', []))}
+
+    INSTRUCTIONS:
+    1. For each field marked as NEEDED, generate realistic and appropriate content.
+    2. Ensure all generated content is consistent with existing product information.
+    3. For FEATURES, focus on specific benefits and unique selling points.
+    4. For MATERIALS, be specific about composition and quality.
+    5. For TAGS/KEYWORDS, include a mix of broad and specific terms relevant to the product.
+
+    RESPONSE FORMAT:
+    Provide your response as a JSON object with only the missing fields. For example:
+
+    {{
+    "category": "Example Category",
+    "subcategory": "Example Subcategory",
+    "features": ["Feature 1", "Feature 2", "Feature 3", "Feature 4"],
+    "materials": ["Material 1", "Material 2"],
+    "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"]
+    }}
+
+    Only include fields that were marked as NEEDED. Do not include explanations outside the JSON."""
         
         return prompt
+
     
     def _create_image_generation_prompt(self, product_data: Dict[str, Any], style: Dict[str, Any]) -> str:
         """
@@ -540,11 +692,50 @@ And so on for each requested platform.
         Returns:
         - str: Prompt for the image generation model
         """
-        # TODO: Implement your prompt engineering strategy for image generation
-        # CANDIDATE: IMPLEMENT THIS FUNCTION
+        # Extract key product information for the image prompt
+        name = product_data.get('name', '')
+        category = product_data.get('category', '')
+        subcategory = product_data.get('subcategory', '')
+        basic_desc = product_data.get('basic_description', '')
         
-        prompt = "Generate a product image. Add your implementation."
+        # Get colors and materials info if available
+        colors = product_data.get('colors', [])
+        color_desc = colors[0] if colors else "standard color"
         
+        materials = product_data.get('materials', [])
+        material_desc = ', '.join(materials[:2]) if materials else ""
+        
+        # Get image style preferences
+        img_style = style.get('style', 'realistic product photography')
+        img_angle = style.get('angle', 'front-facing product shot')
+        img_background = style.get('background', 'plain white background')
+        
+        # Build the prompt with specific details
+        prompt = f"""Create a professional product image of the {name} by {product_data.get('brand', 'a premium brand')}.
+
+
+        Product details:
+        - Brand: {product_data.get('brand', '')}
+        - Type: {category}{f' > {subcategory}' if subcategory else ''}
+        - Description: {basic_desc}
+        - Color: {color_desc}
+        {f'- Made of: {material_desc}' if material_desc else ''}
+
+        Image specifications:
+        - Style: {img_style}
+        - Angle: {img_angle}
+        - Background: {img_background}
+        - High-quality, well-lit commercial product shot
+        - Clean, professional appearance suitable for e-commerce"""
+
+            # Add specific product type details if needed
+        if 'clothing' in category.lower() or 'apparel' in category.lower():
+            prompt += "\n- Show the item on an invisible mannequin or flat lay"
+        elif 'electronics' in category.lower():
+            prompt += "\n- Show multiple angles if appropriate, emphasize sleek design"
+        elif 'furniture' in category.lower():
+            prompt += "\n- Show the item in context within a minimalist room setting"
+            
         return prompt
     
     # Helper methods for parsing LLM responses
@@ -619,21 +810,62 @@ And so on for each requested platform.
         """
         Extract the subject line from the generated email content
         """
-        # TODO: Implement your parsing logic for email subject extraction
-        # CANDIDATE: IMPLEMENT THIS FUNCTION
+        # Look for explicit "Subject Line:" format
+        if "Subject Line:" in email_content or "Subject:" in email_content:
+            lines = email_content.split('\n')
+            for line in lines:
+                line = line.strip()
+                if line.lower().startswith("subject line:"):
+                    return line[13:].strip()
+                if line.lower().startswith("subject:"):
+                    return line[8:].strip()
         
-        # Basic implementation - assuming "Subject Line:" format
-        return "Sample Subject Line"
+        # Fallback: assume the first line is the subject if it's reasonably short
+        lines = [line.strip() for line in email_content.split('\n') if line.strip()]
+        if lines and len(lines[0]) < 100:  # Reasonable subject length
+            return lines[0]
+        
+        # Last resort: extract a short phrase from the start of the content
+        first_sentence = email_content.split('.')[0].strip()
+        if len(first_sentence) <= 60:
+            return first_sentence
+        else:
+            return first_sentence[:57] + "..."
     
     def _extract_email_body(self, email_content: str) -> str:
         """
         Extract the body from the generated email content
         """
-        # TODO: Implement your parsing logic for email body extraction
-        # CANDIDATE: IMPLEMENT THIS FUNCTION
+        # If there's a clear subject line marker, everything after is the body
+        if "Subject Line:" in email_content or "Subject:" in email_content:
+            # Split by lines
+            lines = email_content.split('\n')
+            
+            # Find the subject line index
+            subject_idx = -1
+            for i, line in enumerate(lines):
+                if line.lower().strip().startswith("subject line:") or line.lower().strip().startswith("subject:"):
+                    subject_idx = i
+                    break
+            
+            # If found, everything after the subject line is the body
+            if subject_idx != -1:
+                # Skip any blank lines after the subject
+                body_start = subject_idx + 1
+                while body_start < len(lines) and not lines[body_start].strip():
+                    body_start += 1
+                
+                # Return the body, joined back into a string
+                if body_start < len(lines):
+                    return '\n'.join(lines[body_start:])
         
-        # Basic implementation - assuming "Email Body:" format
-        return "Sample email body content."
+        # Fallback: assume the first line is the subject, rest is body
+        lines = [line for line in email_content.split('\n')]
+        if len(lines) > 1:
+            return '\n'.join(lines[1:]).strip()
+        
+        # If all else fails, return the original content with a note
+        return email_content.strip()
     
     def _parse_social_media_response(self, response_text: str, platforms: Dict[str, bool]) -> Dict[str, str]:
         """
@@ -711,10 +943,108 @@ And so on for each requested platform.
     
     def _parse_missing_fields_response(self, response_text: str, product_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Parse the LLM response to extract missing fields
+        Parse the LLM response to extract missing fields from JSON
         """
-        # TODO: Implement your parsing logic for extracting missing fields
-        # CANDIDATE: IMPLEMENT THIS FUNCTION
+        result = {}
         
-        # Basic implementation - should be replaced with proper parsing
-        return {"category": "Sample Category", "features": ["Sample Feature 1", "Sample Feature 2"]}
+        # First attempt: try to parse the entire response as JSON
+        try:
+            # Find JSON block - look for content between curly braces
+            json_match = response_text.strip()
+            start_idx = json_match.find('{')
+            end_idx = json_match.rfind('}')
+            
+            if start_idx != -1 and end_idx != -1:
+                json_str = json_match[start_idx:end_idx+1]
+                parsed_data = json.loads(json_str)
+                
+                # Only keep fields that were actually missing or incomplete
+                for key, value in parsed_data.items():
+                    # For arrays, check if they were empty or had fewer than required items
+                    if key in ['features', 'materials', 'tags']:
+                        if key not in product_data or len(product_data.get(key, [])) < 3:
+                            result[key] = value
+                    # For other fields, just check if they were missing
+                    elif key not in product_data or not product_data.get(key):
+                        result[key] = value
+                
+                return result
+            
+        except json.JSONDecodeError:
+            # If JSON parsing fails, fall back to line-by-line parsing
+            pass
+        
+        # Second attempt: Try to extract key-value pairs line by line
+        lines = response_text.strip().split('\n')
+        current_key = None
+        current_values = []
+        
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            
+            # Check if this line looks like a category/field header
+            if ':' in line and not line.startswith('-') and not line.startswith('•'):
+                # If we were collecting values for a previous key, save them
+                if current_key and current_values:
+                    result[current_key] = current_values if len(current_values) > 1 else current_values[0]
+                    current_values = []
+                
+                # Parse the new key and its potential value
+                parts = line.split(':', 1)
+                key = parts[0].strip().lower()
+                
+                # Map common key variations to our expected fields
+                key_mapping = {
+                    'category': 'category',
+                    'categories': 'category',
+                    'subcategory': 'subcategory',
+                    'sub-category': 'subcategory',
+                    'subcategories': 'subcategory',
+                    'feature': 'features',
+                    'features': 'features',
+                    'key features': 'features',
+                    'material': 'materials',
+                    'materials': 'materials',
+                    'composition': 'materials',
+                    'tag': 'tags',
+                    'tags': 'tags',
+                    'keywords': 'tags'
+                }
+                
+                if key in key_mapping:
+                    current_key = key_mapping[key]
+                    
+                    # If there's a value after the colon, capture it
+                    if len(parts) > 1 and parts[1].strip():
+                        value = parts[1].strip()
+                        
+                        # Handle comma-separated values
+                        if ',' in value:
+                            values = [v.strip() for v in value.split(',')]
+                            current_values.extend(values)
+                        else:
+                            current_values.append(value)
+            
+            # If this line looks like a list item, add it to current values
+            elif line.startswith('-') or line.startswith('•') or line.startswith('*'):
+                if current_key:
+                    value = line[1:].strip()
+                    current_values.append(value)
+        
+        # Save the last key-value pair if there is one
+        if current_key and current_values:
+            result[current_key] = current_values if len(current_values) > 1 else current_values[0]
+        
+        # Ensure lists are properly formatted
+        for key in ['features', 'materials', 'tags']:
+            if key in result and not isinstance(result[key], list):
+                # If it's a string, try to split it into a list
+                if isinstance(result[key], str):
+                    if ',' in result[key]:
+                        result[key] = [item.strip() for item in result[key].split(',')]
+                    else:
+                        result[key] = [result[key]]
+        
+        return result

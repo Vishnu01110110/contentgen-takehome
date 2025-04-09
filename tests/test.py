@@ -83,6 +83,7 @@ def test_generate_content_endpoint():
         }
         
         response = requests.post(f"{API_BASE_URL}/generate-content", json=request_data)
+    
         
         # Check response status
         if response.status_code != 200:
@@ -90,6 +91,9 @@ def test_generate_content_endpoint():
         
         data = response.json()
         
+        print("Generated Content:", json.dumps(data["generated_content"], indent=2))
+
+
         # Check that we have the right structure
         if "product" not in data:
             return False, "Response missing 'product' field"
@@ -124,11 +128,14 @@ def test_seo_content_generation():
         response = requests.post(f"{API_BASE_URL}/generate-content", json=request_data)
         data = response.json()
         
+        
         # Check that SEO content has the right structure
         if "seo" not in data.get("generated_content", {}):
             return False, "Response missing 'seo' in generated_content"
             
         seo_content = data["generated_content"]["seo"]
+        
+        print("SEO Content:", json.dumps(seo_content, indent=2))
         
         if "title" not in seo_content:
             return False, "SEO content missing 'title'"
@@ -172,6 +179,8 @@ def test_missing_fields_generation():
             return False, "Response missing 'missing_fields' in generated_content"
             
         missing_fields = data["generated_content"]["missing_fields"]
+        print("Missing Fields:", json.dumps(missing_fields, indent=2))
+
         
         # Check that at least some fields have been generated
         if len(missing_fields) == 0:
@@ -204,6 +213,8 @@ def test_complete_product_endpoint():
         
         data = response.json()
         
+        print("Completed Product:", json.dumps(data["completed_product"], indent=2))
+
         # Check that we have the right structure
         if "original_product" not in data:
             return False, "Response missing 'original_product' field"
@@ -270,7 +281,9 @@ def test_image_generation():
             return False, "Response missing 'image_result' field"
             
         image_result = data["image_result"]
-        
+        print("Image Generation Prompt:", image_result.get("prompt", "N/A"))
+        print("Image URL:", image_result.get("image_url", "N/A"))
+
         if "image_url" not in image_result:
             return False, "Image result missing 'image_url'"
             

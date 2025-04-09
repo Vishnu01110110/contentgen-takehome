@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional, Union
+from fastapi.responses import JSONResponse
 
 from services.llm_service import LLMService
 from services.product_service import ProductService
@@ -141,13 +142,40 @@ async def generate_image(request: Dict[str, Any]):
         # Handle any errors from the LLM or Image Generation API
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@app.post("/api/complete-product")
+async def complete_product(request: Dict[str, Any]):
+    """
+    Generate all content and missing fields for a product
+    """
+    try:
+        product_data = request.get("product_data")
+        if not product_data:
+            raise HTTPException(status_code=400, detail="Product data must be provided")
+        
+        completed_product = llm_service.complete_product(product_data)
+        
+        return {
+            "original_product": product_data,
+            "completed_product": completed_product
+        }
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
 # Custom exception handler for more user-friendly error messages
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
-    return {
-        "error": str(exc),
-        "message": "An error occurred while processing your request"
-    }
+    print(f"Unhandled Exception: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": str(exc),
+            "message": "An internal error occurred while processing your request."
+        },
+    )
 
 if __name__ == "__main__":
     # Run the API with uvicorn
