@@ -1,9 +1,9 @@
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL;
 
 // Fetch all products from the API
 export const fetchProducts = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/products`);
+    const response = await fetch(`${API_BASE_URL}/api/products`);
     if (!response.ok) {
       throw new Error(`HTTP error ${response.status}`);
     }
@@ -17,7 +17,7 @@ export const fetchProducts = async () => {
 // Fetch a specific product by ID
 export const fetchProduct = async (productId) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/products/${productId}`);
+    const response = await fetch(`${API_BASE_URL}/api/products/${productId}`);
     if (!response.ok) {
       throw new Error(`HTTP error ${response.status}`);
     }
@@ -31,19 +31,17 @@ export const fetchProduct = async (productId) => {
 // Generate content based on product data and selected options
 export const generateContent = async (requestData) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/generate-content`, {
+    const response = await fetch(`${API_BASE_URL}/api/generate-content`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestData),
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.detail || `HTTP error ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error('Error generating content:', error);
@@ -54,19 +52,17 @@ export const generateContent = async (requestData) => {
 // Complete a product by generating all missing fields
 export const completeProduct = async (requestData) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/complete-product`, {
+    const response = await fetch(`${API_BASE_URL}/api/complete-product`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestData),
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.detail || `HTTP error ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error('Error completing product:', error);
@@ -77,19 +73,17 @@ export const completeProduct = async (requestData) => {
 // Generate a product image based on product data
 export const generateProductImage = async (requestData) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/generate-image`, {
+    const response = await fetch(`${API_BASE_URL}/api/generate-image`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestData),
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.detail || `HTTP error ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error('Error generating image:', error);

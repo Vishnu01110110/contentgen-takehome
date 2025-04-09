@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/contentgen-takehome/static/css/main.f3b0c1a2.css",
+    "main.js": "/contentgen-takehome/static/js/main.a81048f7.js",
+    "index.html": "/contentgen-takehome/index.html",
+    "main.f3b0c1a2.css.map": "/contentgen-takehome/static/css/main.f3b0c1a2.css.map",
+    "main.a81048f7.js.map": "/contentgen-takehome/static/js/main.a81048f7.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.f3b0c1a2.css",
+    "static/js/main.a81048f7.js"
+  ]
+}
