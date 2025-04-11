@@ -280,6 +280,7 @@ const GeneratedContent = ({ content, contentTypes, isLoading }) => {
                 {type === 'marketing_email' && 'Marketing Email'}
                 {type === 'social_media' && 'Social Media'}
                 {type === 'missing_fields' && 'Missing Fields'}
+                {type === 'product_image' && 'Product Image'}
               </button>
             ))}
           </div>

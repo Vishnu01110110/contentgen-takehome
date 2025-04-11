@@ -305,7 +305,7 @@ class LLMService:
     
     def _create_product_description_prompt(self, product_data: Dict[str, Any], style: Dict[str, Any]) -> str:
         """
-        Create a prompt for generating a product description
+         Create a prompt for generating a product description
         
         This is where you should implement your prompt engineering strategy.
         
@@ -317,7 +317,7 @@ class LLMService:
         - str: Prompt for the LLM
         """
         # Implementation example - detailed prompt crafting
-        prompt = f"Create a compelling product description for the following e-commerce product:\n\n"
+        prompt = f"You are a eCommerce copywrighter, Create a compelling product description for the following e-commerce product:\n\n"
         
         # Essential product information
         prompt += f"PRODUCT: {product_data.get('name', '')}\n"
@@ -431,7 +431,7 @@ class LLMService:
         - Start with the main keyword
         - Include a strong value prop and a clear call-to-action
         - Use 1-2 secondary keywords naturally
-        - Keep the description STRICTLY between 120-160 characters
+        - Keep the description STRICTLY under 150 and above 120 characters
 
         RESPONSE FORMAT:
         Title: [your SEO title here]
@@ -486,7 +486,7 @@ class LLMService:
 
         [Email Body Content]
 
-        Note: Format the email body as it should appear, with paragraph breaks and sections. Do not include placeholders like [Email Body Content]."""
+        Note: Format the email body as it should appear, with paragraph breaks and sections. Do not include any placeholders , my name is Vishnu"""
             
         return prompt
     
@@ -737,7 +737,9 @@ And so on for each requested platform.
             prompt += "\n- Show the item in context within a minimalist room setting"
             
         return prompt
-    
+
+
+ 
     # Helper methods for parsing LLM responses
     
     def _parse_seo_response(self, response_text: str) -> Dict[str, str]:

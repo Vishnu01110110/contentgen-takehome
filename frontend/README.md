@@ -43,28 +43,7 @@ frontend/
 
 The application will open at `http://localhost:3000`.
 
-## Implementation Tasks
+## Implementation 
+Almost no changes were made to the frontend. The Ui already ahde everything assumed nothing was needed here
 
-As part of this assignment, you need to implement the following components:
-
-### 1. Product Form Component (components/ProductForm.js)
-
-Create a form that:
-- Allows selecting from existing product samples or creating a custom product
-- Provides input fields for all relevant product attributes (name, description, price, etc.)
-- Shows a summary of the selected product or input data
-- Handles validation and state management
-
-### 2. Content Type Component (components/ContentType.js)
-
-Implement a component that:
-- Provides options to select different types of content to generate
-- Includes product descriptions, SEO content, marketing emails, social media posts, etc.
-- Allows for image generation selection
-- Provides clear explanations of each content type
-
-### 3. Generated Content Component (components/GeneratedContent.js)
-
-Create a component that:
-- Displays the generated content in a structured format
-- Provides tabs for navigating between different content types
+Just added one feature to display images which was not there before

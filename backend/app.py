@@ -154,7 +154,7 @@ async def complete_product(request: Dict[str, Any]):
             raise HTTPException(status_code=400, detail="Product data must be provided")
         
         completed_product = llm_service.complete_product(product_data)
-        
+          
         return {
             "original_product": product_data,
             "completed_product": completed_product
