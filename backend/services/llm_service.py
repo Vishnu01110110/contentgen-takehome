@@ -425,13 +425,11 @@ class LLMService:
         INSTRUCTIONS:
         1. Create a small SEO-optimized product title:
         - Highlight a key benefit or feature
-        - Keep the title STRICTLY between  30-70 characters
+        - Keep the title STRICTLY between  30-60 characters
 
         2. Create a small meta description:
-        - Start with the main keyword
         - Include a strong value prop and a clear call-to-action
-        - Use 1-2 secondary keywords naturally
-        - Keep the description STRICTLY under 150 and above 120 characters
+        - Keep the description STRICTLY between 130-150 characters
 
         RESPONSE FORMAT:
         Title: [your SEO title here]
